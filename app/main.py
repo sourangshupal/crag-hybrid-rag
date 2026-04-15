@@ -16,8 +16,8 @@ logger.add(
 settings = get_settings()
 
 app = FastAPI(
-    title="Corrective RAG + Self-Reflective RAG",
-    description="Minimal implementation showcasing CRAG and Self-Reflective RAG patterns",
+    title="Corrective RAG with Hybrid Search",
+    description="Minimal implementation of Corrective RAG (CRAG) with hybrid dense + sparse retrieval",
     version="1.0.0"
 )
 

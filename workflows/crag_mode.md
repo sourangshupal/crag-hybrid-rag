@@ -42,7 +42,6 @@ flowchart TD
 ### 1. Retrieval
 - Fetches top-k chunks from Qdrant vector store
 - Uses OpenAI embeddings for similarity search
-- Optional: HYDE (Hypothetical Document Embeddings) for query expansion
 - Optional: Reranking (local cross-encoder or Voyage AI)
 
 ### 2. LLM-Based Relevance Evaluation

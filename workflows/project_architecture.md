@@ -1,6 +1,6 @@
 # Project Architecture
 
-Complete architectural overview of the Corrective RAG + Self-Reflective RAG system.
+Complete architectural overview of the Corrective RAG with Hybrid Search system.
 
 ## System Architecture Overview
 
@@ -22,11 +22,9 @@ flowchart TB
         DocProc[DocumentProcessor<br/>Docling Integration]
         Retrieval[RetrievalService<br/>Vector Search]
         CRAG[CRAGService<br/>Relevance + Web]
-        SelfRef[SelfReflectiveService<br/>Grounding Check]
         LLM[LLMService<br/>OpenAI Wrapper]
         WebSearch[WebSearchService<br/>Tavily Client]
         Rerank[RerankingService<br/>Local/Voyage]
-        HYDE[HydeService<br/>Query Expansion]
         VectorStore[VectorStore<br/>Qdrant Client]
     end
 
@@ -50,17 +48,13 @@ flowchart TB
     UploadAPI --> DocProc
     QueryAPI --> Retrieval
     QueryAPI --> CRAG
-    QueryAPI --> SelfRef
     CompareAPI --> QueryAPI
 
     DocProc --> VectorStore
     Retrieval --> VectorStore
-    Retrieval --> HYDE
     CRAG --> LLM
     CRAG --> WebSearch
-    SelfRef --> LLM
     Rerank --> Retrieval
-    HYDE --> LLM
 
     VectorStore --> Qdrant
     LLM --> OpenAI
@@ -86,9 +80,7 @@ classDiagram
     class RetrievalService {
         +vector_store: VectorStore
         +embedding_service: EmbeddingService
-        +hyde_service: HydeService
-        +retrieve(query, top_k, use_hyde)
-        +get_last_hyde_hypotheses()
+        +retrieve(query, top_k)
     }
 
     class CRAGService {
@@ -98,14 +90,6 @@ classDiagram
         +execute_crag(query, chunks)
         +generate_answer_with_crag(query, result)
         +get_augmented_chunks(result)
-    }
-
-    class SelfReflectiveService {
-        +llm: LLMService
-        +generate_initial_answer(query, chunks)
-        +reflect_on_answer(query, answer, chunks)
-        +execute_self_reflective(query, chunks, retrieval_fn)
-        -_refine_query(query, reflection)
     }
 
     class LLMService {
@@ -140,16 +124,9 @@ classDiagram
         +rerank(query, chunks, top_k)
     }
 
-    class HydeService {
-        +llm: LLMService
-        +generate_hypothetical_documents(query, num_hypotheses)
-    }
-
     RetrievalService --> VectorStore
-    RetrievalService --> HydeService
     CRAGService --> LLMService
     CRAGService --> WebSearchService
-    SelfReflectiveService --> LLMService
     DocumentProcessor --> VectorStore
     RerankingService --> RetrievalService
 ```
@@ -160,9 +137,8 @@ classDiagram
 classDiagram
     class QueryRequest {
         +query: str
-        +mode: Literal["standard", "crag", "self_reflective", "both"]
+        +mode: Literal["standard", "crag"]
         +top_k: int = 5
-        +enable_hyde: bool = False
         +enable_reranking: bool = False
     }
 
@@ -203,43 +179,21 @@ classDiagram
         +web_results: Optional~list~dict~~
     }
 
-    class ReflectionResult {
-        +answer_grounded: bool
-        +hallucination_detected: bool
-        +sources_cited: list~str~
-        +reflection_score: float
-        +needs_regeneration: bool
-        +reflection_reason: str
-        +reflected_at: datetime
-    }
-
-    class SelfReflectiveResult {
-        +final_answer: str
-        +iterations: int
-        +reflection: ReflectionResult
-        +retrieved_chunks: list~RetrievedChunk~
-    }
-
     class QueryResponse {
         +query: str
         +answer: str
         +mode: str
         +sources: list~RetrievedChunk~
         +crag_details: Optional~CRAGResult~
-        +reflection_details: Optional~SelfReflectiveResult~
         +response_time_ms: float
-        +hyde_used: bool
         +reranking_used: bool
     }
 
     RetrievedChunk *-- ChunkMetadata
     CRAGResult *-- CRAGEvaluation
     CRAGResult *-- RetrievedChunk
-    SelfReflectiveResult *-- ReflectionResult
-    SelfReflectiveResult *-- RetrievedChunk
     QueryResponse *-- RetrievedChunk
     QueryResponse *-- CRAGResult
-    QueryResponse *-- SelfReflectiveResult
 ```
 
 
@@ -254,15 +208,13 @@ flowchart LR
     Settings --> LLMConfig[LLM Configuration]
     Settings --> VectorConfig[Vector Store Config]
     Settings --> CRAGConfig[CRAG Configuration]
-    Settings --> SRConfig[Self-Reflective Config]
     Settings --> FeatureFlags[Feature Flags]
 
     APIConfig --> Host[HOST<br/>PORT]
     LLMConfig --> Model[LLM_MODEL<br/>EMBEDDING_MODEL<br/>OPENAI_API_KEY]
     VectorConfig --> Qdrant[QDRANT_URL<br/>QDRANT_COLLECTION<br/>EMBEDDING_DIMENSIONS]
     CRAGConfig --> Thresholds[RELEVANCE_THRESHOLD<br/>AMBIGUOUS_THRESHOLD<br/>TAVILY_API_KEY]
-    SRConfig --> Reflection[REFLECTION_MIN_SCORE<br/>MAX_REFLECTION_RETRIES]
-    FeatureFlags --> Flags[HYDE_ENABLED<br/>RERANKING_ENABLED<br/>RERANKER_BACKEND]
+    FeatureFlags --> Flags[RERANKING_ENABLED<br/>RERANKER_BACKEND]
 
     style ENV fill:#f0f0f0
     style Settings fill:#e1f5e1
@@ -270,7 +222,6 @@ flowchart LR
     style LLMConfig fill:#e6f3ff
     style VectorConfig fill:#e6f3ff
     style CRAGConfig fill:#fff4e6
-    style SRConfig fill:#fff4e6
     style FeatureFlags fill:#ffe6e6
 ```
 
@@ -336,14 +287,10 @@ flowchart TB
 flowchart LR
     Query[User Query] --> OptPoints{Optimization<br/>Points}
 
-    OptPoints --> O1[1. HYDE<br/>Query Expansion]
-    OptPoints --> O2[2. Vector Search<br/>Initial top_k]
-    OptPoints --> O3[3. Reranking<br/>Local vs API]
-    OptPoints --> O4[4. CRAG Evaluation<br/>Cache results?]
-    OptPoints --> O5[5. LLM Generation<br/>Model selection]
-
-    O1 -.->|Cost| C1[+3 embedding calls]
-    O1 -.->|Benefit| B1[Better recall]
+    OptPoints --> O2[1. Vector Search<br/>Initial top_k]
+    OptPoints --> O3[2. Reranking<br/>Local vs API]
+    OptPoints --> O4[3. CRAG Evaluation<br/>Cache results?]
+    OptPoints --> O5[4. LLM Generation<br/>Model selection]
 
     O2 -.->|Trade-off| T2[More chunks = better coverage<br/>but slower processing]
 
@@ -356,7 +303,6 @@ flowchart LR
     O5 -.->|Quality| Q5[gpt-4o<br/>Higher cost]
 
     style OptPoints fill:#fff4e6
-    style O1 fill:#e6f3ff
     style O2 fill:#e6f3ff
     style O3 fill:#e6f3ff
     style O4 fill:#e6f3ff
@@ -387,18 +333,13 @@ crag_service = CRAGService()
 ### 4. **Metadata Standardization**
 - All chunks (docs + web) use same `ChunkMetadata` structure
 - `file_type` distinguishes source ("pdf", "web_search", etc.)
-- Enables uniform handling in Self-Reflective RAG
+- Enables uniform handling across all RAG modes
 
-### 5. **CRAG-Aware Retrieval in Both Mode**
-- Retrieval function re-runs CRAG on refined queries
-- Preserves web search capability across iterations
-- Ensures consistent behavior
-
-### 6. **Error Handling Strategy**
+### 5. **Error Handling Strategy**
 - LLM JSON responses wrapped in try/except with fallbacks
 - Pydantic validation errors → 422 responses
 - Service errors → 500 with logged details
-- Graceful degradation (e.g., HYDE falls back to original query)
+- Graceful degradation with appropriate fallbacks
 
 ## Monitoring & Observability
 
@@ -413,9 +354,8 @@ logger.error(f"Search error: {e}")
 
 **Key Log Points:**
 - Document processing: chunk count, file info
-- Retrieval: chunk count, HYDE usage
+- Retrieval: chunk count
 - CRAG: evaluation score, web search trigger
-- Self-Reflective: iteration count, reflection scores
 - Errors: full exception details
 
 ### Metrics to Track
@@ -425,8 +365,6 @@ logger.error(f"Search error: {e}")
 | **Response Time** | query.py | Performance monitoring |
 | **Chunk Count** | retrieval.py | Retrieval effectiveness |
 | **CRAG Scores** | crag.py | Relevance distribution |
-| **Reflection Scores** | self_reflective.py | Quality assessment |
-| **Iteration Count** | self_reflective.py | Refinement frequency |
 | **Web Search Triggers** | crag.py | CRAG usage patterns |
 | **LLM Token Usage** | llm_service.py | Cost tracking |
 
@@ -497,7 +435,7 @@ flowchart TD
 
 ```bash
 # 1. Clone and setup
-cd corrective_self_reflective_rag
+cd crag-hybrid-rag
 cp .env.example .env
 # Edit .env with your API keys
 
@@ -525,8 +463,6 @@ curl -X POST http://localhost:8000/query/ \
 
 ## Related Documentation
 
-- **[workflows/README.md](./README.md)** - Workflow index
 - **[workflows/crag_mode.md](./crag_mode.md)** - CRAG workflow details
-- **[workflows/self_reflective_mode.md](./self_reflective_mode.md)** - Self-Reflective workflow
-- **[workflows/both_mode.md](./both_mode.md)** - Combined workflow
+- **[workflows/hybrid_search.md](./hybrid_search.md)** - Hybrid search details
 - **[.env.example](../.env.example)** - Configuration reference

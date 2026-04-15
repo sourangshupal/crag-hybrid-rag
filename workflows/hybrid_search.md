@@ -58,17 +58,14 @@ flowchart TD
     ResultsHybrid --> Merge
 
     subgraph Optional["🔧 Optional Enhancements"]
-        Merge --> HYDE{HYDE<br/>Enabled?}
-        HYDE -->|Yes| HydeGen[Generate 3<br/>Hypotheses<br/>Multi-query]
-        HYDE -->|No| Rerank
-        HydeGen --> Rerank{Reranking<br/>Enabled?}
+        Merge --> Rerank{Reranking<br/>Enabled?}
 
         Rerank -->|Yes| CrossEnc[Cross-Encoder<br/>Reranking<br/>Refine Top-K]
         Rerank -->|No| Final
         CrossEnc --> Final
     end
 
-    Final[Final Retrieved Chunks] --> RAG[RAG Pipeline<br/>CRAG / Self-Reflective / Both]
+    Final[Final Retrieved Chunks] --> RAG[RAG Pipeline<br/>Standard / CRAG]
     RAG --> Answer([Generated Answer])
 
     style UserQuery fill:#e1f5e1
@@ -202,8 +199,6 @@ Hybrid search works seamlessly with all RAG modes:
 |----------|-------------------|
 | **Standard** | Retrieval → Hybrid Search → Generate Answer |
 | **CRAG** | Retrieval → Hybrid Search → Relevance Check → Web Search (if needed) |
-| **Self-Reflective** | Retrieval → Hybrid Search → Answer → Grounding Check → Refine (if needed) |
-| **Both** | Retrieval → Hybrid Search → CRAG + Self-Reflective Pipeline |
 
 All modes support all three search modes (dense, sparse, hybrid) via the `search_mode` parameter.
 
@@ -228,7 +223,6 @@ RRF_K=60                          # RRF fusion parameter (default: 60)
   "mode": "both",
   "search_mode": "hybrid",  // "dense" | "sparse" | "hybrid"
   "top_k": 5,
-  "enable_hyde": true,
   "enable_reranking": true
 }
 ```
@@ -289,7 +283,7 @@ results = qdrant_client.query_points(
 ✅ **Robust to Query Variations**: Works for conceptual and specific queries
 ✅ **RRF Fusion**: Intelligently merges rankings from incompatible scoring systems
 ✅ **No Extra Latency**: Dual vectors indexed simultaneously, minimal overhead
-✅ **Production Ready**: Compatible with all RAG modes, HYDE, and reranking
+✅ **Production Ready**: Compatible with all RAG modes and reranking
 ✅ **Transparent**: Users control search mode via API parameter
 
 ---
