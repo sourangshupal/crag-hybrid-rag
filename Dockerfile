@@ -76,6 +76,18 @@ COPY --from=builder --chown=appuser:appuser /root/.cache /home/appuser/.cache
 ENV PATH="/app/.venv/bin:$PATH" \
     HF_HOME="/home/appuser/.cache/huggingface"
 
+# Diagnose torchvision._C shared-library dependencies so we know what's missing.
+RUN /app/.venv/bin/python -c "\
+import pathlib, subprocess, sys; \
+so = next(pathlib.Path('/app/.venv/lib/python3.12/site-packages/torchvision').glob('_C*.so'), None); \
+print('_C.so:', so); \
+print(subprocess.run(['ldd', str(so)], capture_output=True, text=True).stdout if so else 'no _C.so found')" \
+  && /app/.venv/bin/python -c "\
+import ctypes, pathlib; \
+so = next(pathlib.Path('/app/.venv/lib/python3.12/site-packages/torchvision').glob('_C*.so'), None); \
+print(ctypes.CDLL(str(so))) if so else print('no _C.so')" \
+  || true
+
 # Verify critical imports work in this runtime environment — fails the build
 # with the actual error if torch or sentence-transformers can't be loaded.
 RUN /app/.venv/bin/python -c "\
