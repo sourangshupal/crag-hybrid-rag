@@ -36,7 +36,7 @@ RUN uv sync --no-dev
 # torch+cpu. Force-reinstall the CPU build from the pytorch WHL index.
 RUN uv pip install \
     --index-url https://download.pytorch.org/whl/cpu \
-    "torch==2.11.0+cpu" "torchvision==0.26.0+cpu"
+    "torch==2.6.0+cpu" "torchvision==0.21.0+cpu"
 
 # Pre-download the cross-encoder model weights at build time so there is
 # no HuggingFace network call at container startup. Uses snapshot_download
