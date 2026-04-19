@@ -31,6 +31,13 @@ COPY README.md ./
 COPY app/ ./app/
 RUN uv sync --no-dev
 
+# uv.lock resolves torchvision from PyPI (macOS-generated lock), but the PyPI
+# wheel is compiled against CUDA-capable torch ABI which is incompatible with
+# torch+cpu. Force-reinstall the CPU build from the pytorch WHL index.
+RUN uv pip install \
+    --index-url https://download.pytorch.org/whl/cpu \
+    "torch==2.11.0+cpu" "torchvision==0.26.0+cpu"
+
 # Pre-download the cross-encoder reranker model at build time so there is
 # no HuggingFace network call at container startup.
 RUN uv run python -c "\
