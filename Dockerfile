@@ -76,17 +76,18 @@ COPY --from=builder --chown=appuser:appuser /root/.cache /home/appuser/.cache
 ENV PATH="/app/.venv/bin:$PATH" \
     HF_HOME="/home/appuser/.cache/huggingface"
 
-# Diagnose torchvision._C shared-library dependencies so we know what's missing.
+# Diagnose torchvision._C: check RPATH and whether LD_LIBRARY_PATH fixes it.
 RUN /app/.venv/bin/python -c "\
-import pathlib, subprocess, sys; \
+import pathlib, subprocess; \
 so = next(pathlib.Path('/app/.venv/lib/python3.12/site-packages/torchvision').glob('_C*.so'), None); \
-print('_C.so:', so); \
-print(subprocess.run(['ldd', str(so)], capture_output=True, text=True).stdout if so else 'no _C.so found')" \
-  && /app/.venv/bin/python -c "\
-import ctypes, pathlib; \
-so = next(pathlib.Path('/app/.venv/lib/python3.12/site-packages/torchvision').glob('_C*.so'), None); \
-print(ctypes.CDLL(str(so))) if so else print('no _C.so')" \
-  || true
+print('_C.so path:', so); \
+r = subprocess.run(['readelf', '-d', str(so)], capture_output=True, text=True); \
+[print(l) for l in r.stdout.splitlines() if 'RPATH' in l or 'RUNPATH' in l or 'NEEDED' in l or 'cuda' in l.lower()]; \
+print('---ldd missing---'); \
+r2 = subprocess.run(['ldd', str(so)], capture_output=True, text=True); \
+[print(l) for l in r2.stdout.splitlines() if 'not found' in l]" || true
+RUN LD_LIBRARY_PATH=/app/.venv/lib/python3.12/site-packages/torch/lib \
+    /app/.venv/bin/python -c "import torchvision; print('torchvision with LD_LIBRARY_PATH:', torchvision.__version__)" || true
 
 # Verify critical imports work in this runtime environment — fails the build
 # with the actual error if torch or sentence-transformers can't be loaded.
