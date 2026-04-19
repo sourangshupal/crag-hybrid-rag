@@ -17,7 +17,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="Corrective RAG with Hybrid Search",
-    description="Minimal implementation of Corrective RAG (CRAG) with hybrid dense + sparse retrieval",
+    description="Corrective RAG (CRAG) with hybrid dense + sparse retrieval + reranker",
     version="1.0.0"
 )
 

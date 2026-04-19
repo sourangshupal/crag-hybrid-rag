@@ -164,6 +164,31 @@ The IAM user must have the following minimum permissions:
 }
 ```
 
+### Attach the Policy via AWS CLI
+
+If you prefer the terminal over the AWS Console, run these three commands in order:
+
+```bash
+# 1. Create the managed policy from the JSON file
+aws iam create-policy \
+  --policy-name crag-hybrid-rag-cicd \
+  --policy-document file://iam-cicd-policy.json \
+  --query 'Policy.Arn' \
+  --output text
+
+# 2. Attach it to the IAM user (replace YOUR_IAM_USERNAME)
+aws iam attach-user-policy \
+  --user-name YOUR_IAM_USERNAME \
+  --policy-arn arn:aws:iam::685057748560:policy/crag-hybrid-rag-cicd
+
+# 3. Verify the policy is attached
+aws iam list-attached-user-policies \
+  --user-name YOUR_IAM_USERNAME \
+  --query 'AttachedPolicies[?PolicyName==`crag-hybrid-rag-cicd`]'
+```
+
+> Run `aws iam list-users` to look up your IAM username if you are unsure.
+
 ---
 
 ## Environment Variables on the EC2 Instance
