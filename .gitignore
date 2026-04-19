@@ -26,8 +26,7 @@ venv/
 ENV/
 env/
 
-# uv
-uv.lock
+# uv — lock file is committed for reproducible Docker builds
 
 # IDE
 .vscode/
@@ -78,3 +77,7 @@ tests/*
 
 # .worktrees/*
 # .worktrees/deploy-aws-eb
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
