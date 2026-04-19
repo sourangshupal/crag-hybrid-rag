@@ -38,11 +38,12 @@ RUN uv pip install \
     --index-url https://download.pytorch.org/whl/cpu \
     "torch==2.11.0+cpu" "torchvision==0.26.0+cpu"
 
-# Pre-download the cross-encoder reranker model at build time so there is
-# no HuggingFace network call at container startup.
+# Pre-download the cross-encoder model weights at build time so there is
+# no HuggingFace network call at container startup. Uses snapshot_download
+# (pure HTTP, no torch/torchvision init) to avoid ABI issues at build time.
 RUN uv run python -c "\
-from sentence_transformers import CrossEncoder; \
-CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+from huggingface_hub import snapshot_download; \
+snapshot_download('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
 
 # ============================================================
