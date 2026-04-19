@@ -57,6 +57,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     poppler-utils \
     libgomp1 \
+    libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
@@ -74,6 +75,15 @@ COPY --from=builder --chown=appuser:appuser /root/.cache /home/appuser/.cache
 # Ensure the venv's Python/scripts are on PATH
 ENV PATH="/app/.venv/bin:$PATH" \
     HF_HOME="/home/appuser/.cache/huggingface"
+
+# Verify critical imports work in this runtime environment — fails the build
+# with the actual error if torch or sentence-transformers can't be loaded.
+RUN /app/.venv/bin/python -c "\
+import sys; \
+import torch; print('torch', torch.__version__); \
+import torchvision; print('torchvision', torchvision.__version__); \
+from transformers import PreTrainedModel; print('transformers OK'); \
+from sentence_transformers import CrossEncoder; print('CrossEncoder OK')"
 
 # Create uploads directory (ephemeral — vectors persist in Qdrant Cloud)
 RUN mkdir -p /var/app/uploads && chown appuser:appuser /var/app/uploads
