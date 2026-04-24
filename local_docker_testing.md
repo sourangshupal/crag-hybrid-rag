@@ -43,6 +43,14 @@ UPLOAD_DIR=/var/app/uploads
 ```bash
 # From the project root (same directory as Dockerfile)
 docker build --platform linux/amd64 -t crag-hybrid-rag:local .
+
+OR
+
+docker compose -f docker-compose.local.yml up
+
+OR
+
+docker compose -f docker-compose.local.yml up --build
 ```
 
 **What to watch for:**
