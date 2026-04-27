@@ -16,7 +16,7 @@ logger.add(
 settings = get_settings()
 
 app = FastAPI(
-    title="RAG with Hybrid Search",
+    title="RAG with Reranker and web search",
     description="(CRAG) with hybrid dense + sparse retrieval + reranker",
     version="1.0.0"
 )

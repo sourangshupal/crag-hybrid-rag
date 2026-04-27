@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "685057748560.dkr.ecr.us-east-1.amazonaws.com/crag-hybrid-rag:latest",
+    "Name": "366476833746.dkr.ecr.us-east-1.amazonaws.com/crag-hybrid-rag:latest",
     "Update": "true"
   },
   "Ports": [

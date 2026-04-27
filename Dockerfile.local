@@ -13,7 +13,7 @@
 # ============================================================
 # Stage 1: Builder — install dependencies with uv
 # ============================================================
-FROM --platform=linux/arm64 ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
@@ -51,7 +51,7 @@ snapshot_download('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 # ============================================================
 # Stage 2: Runtime — lean image with only what is needed
 # ============================================================
-FROM --platform=linux/arm64 python:3.12-slim-bookworm AS runtime
+FROM --platform=linux/amd64 python:3.12-slim-bookworm AS runtime
 
 # System deps required at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -15,7 +15,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    platform: linux/arm64
+    platform: linux/amd64 #arm64
     container_name: crag-qdrant
     ports:
       - "6333:6333"   # REST API (also serves the web dashboard at /dashboard)
@@ -37,7 +37,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-    platform: linux/arm64
+    platform: linux/amd64 #arm64
     container_name: crag-app
     ports:
       - "8000:8000"

@@ -24,7 +24,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 RUN touch uv.lock
 COPY uv.lock* ./
-RUN uv sync --no-dev --no-install-project
+
+ENV UV_NO_CACHE=1
+ENV HF_HOME=/tmp/huggingface
+#RUN uv sync --no-dev --no-install-project
+RUN uv sync --no-dev --no-install-project --index-strategy unsafe-best-match
 
 # Pass 2 — install the project itself (invalidated only when source changes)
 COPY README.md ./
@@ -70,7 +74,7 @@ COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /app/app /app/app
 
 # Copy the pre-downloaded HuggingFace model cache
-COPY --from=builder --chown=appuser:appuser /root/.cache /home/appuser/.cache
+#COPY --from=builder --chown=appuser:appuser /root/.cache /home/appuser/.cache
 
 # Ensure the venv's Python/scripts are on PATH
 ENV PATH="/app/.venv/bin:$PATH" \
